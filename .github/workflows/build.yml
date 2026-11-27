@@ -31,24 +31,49 @@ jobs:
           mv $ANDROID_HOME/tmp-extract/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
           rm -rf $ANDROID_HOME/tmp-extract cmdline-tools.zip
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --licenses
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_PATH
           echo "sdk.dir=$ANDROID_HOME" > $GITHUB_WORKSPACE/android/local.properties
 
-      - name: Setup Gradle
+      - name: Setup Gradle 8.9
         uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: "8.9"
+
+      - name: Patch settings.gradle.kts (add google repo)
+        working-directory: android
+        run: |
+          cp settings.gradle.kts settings.gradle.kts.bak || true
+          # 取出原项目名和 include 的模块
+          NAME_LINE=$(grep -E "rootProject.name" settings.gradle.kts.bak | head -1)
+          INCLUDE_LINES=$(grep -E "^\s*include" settings.gradle.kts.bak)
+          [ -z "$NAME_LINE" ] && NAME_LINE='rootProject.name = "football-analyzer"'
+          [ -z "$INCLUDE_LINES" ] && INCLUDE_LINES='include(":app")'
+          cat > settings.gradle.kts <<EOF
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          $NAME_LINE
+          $INCLUDE_LINES
+          EOF
+          echo "===== 新的 settings.gradle.kts ====="
+          cat settings.gradle.kts
 
       - name: Build Debug APK
         working-directory: android
-        run: |
-          if [ -f gradlew ]; then
-            echo "==> 使用 gradlew 构建"
-            chmod +x gradlew
-            ./gradlew assembleDebug --stacktrace --no-daemon
-          else
-            echo "==> 未找到 gradlew，改用 gradle 直接构建"
-            gradle assembleDebug --stacktrace --no-daemon
-          fi
+        run: gradle assembleDebug --stacktrace --no-daemon
 
       - name: Upload APK artifact
         if: always()
