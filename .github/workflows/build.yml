@@ -45,7 +45,6 @@ jobs:
         working-directory: android
         run: |
           cp settings.gradle.kts settings.gradle.kts.bak || true
-          # 取出原项目名和 include 的模块
           NAME_LINE=$(grep -E "rootProject.name" settings.gradle.kts.bak | head -1)
           INCLUDE_LINES=$(grep -E "^\s*include" settings.gradle.kts.bak)
           [ -z "$NAME_LINE" ] && NAME_LINE='rootProject.name = "football-analyzer"'
@@ -70,13 +69,14 @@ jobs:
           EOF
           echo "===== 新的 settings.gradle.kts ====="
           cat settings.gradle.kts
-     - name: Remove duplicate launcher icons
+
+      - name: Remove duplicate launcher icons
         working-directory: android
         run: |
           echo "===== 删除前 mipmap 目录 ====="
-          ls -R app/src/main/res | grep mipmap || true
-          # 凡是有同名 .xml 自适应图标的，就删掉旧的 .png，避免 Duplicate resources
+          ls -R app/src/main/res 2>/dev/null | grep mipmap || true
           for d in app/src/main/res/mipmap-*; do
+            [ -d "$d" ] || continue
             for xml in "$d"/*.xml; do
               [ -f "$xml" ] || continue
               png="${xml%.xml}.png"
@@ -86,12 +86,11 @@ jobs:
               fi
             done
           done
-          # 兜底：任何 ic_launcher / ic_launcher_round 的 png 只要同目录有 xml 就删
           find app/src/main/res -name "ic_launcher*.png" | while read p; do
             if [ -f "${p%.png}.xml" ]; then echo "再删: $p"; rm -f "$p"; fi
           done
           echo "===== 删除后 mipmap 目录 ====="
-          ls -R app/src/main/res | grep mipmap || true
+          ls -R app/src/main/res 2>/dev/null | grep mipmap || true
 
       - name: Build Debug APK
         working-directory: android
