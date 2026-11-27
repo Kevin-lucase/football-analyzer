@@ -33,23 +33,28 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_PATH
 
-      - name: Grant gradlew permission
-        working-directory: android
-        run: chmod +x gradlew
-
       - name: Build Debug APK
-        working-directory: android
-        run: ./gradlew assembleDebug --stacktrace
+        run: |
+          GRADLEW_PATH=$(find . -name gradlew -type f | head -1)
+          if [ -z "$GRADLEW_PATH" ]; then
+            echo "========== gradlew NOT FOUND. Repo structure: =========="
+            ls -laR
+            exit 1
+          fi
+          echo "Found gradlew at: $GRADLEW_PATH"
+          chmod +x "$GRADLEW_PATH"
+          cd "$(dirname "$GRADLEW_PATH")"
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/*.apk
+          path: "**/app/build/outputs/apk/debug/*.apk"
 
       - name: Publish to Release
         uses: softprops/action-gh-release@v2
         if: always()
         with:
           tag_name: latest
-          files: android/app/build/outputs/apk/debug/*.apk
+          files: "**/app/build/outputs/apk/debug/*.apk"
