@@ -70,6 +70,28 @@ jobs:
           EOF
           echo "===== 新的 settings.gradle.kts ====="
           cat settings.gradle.kts
+     - name: Remove duplicate launcher icons
+        working-directory: android
+        run: |
+          echo "===== 删除前 mipmap 目录 ====="
+          ls -R app/src/main/res | grep mipmap || true
+          # 凡是有同名 .xml 自适应图标的，就删掉旧的 .png，避免 Duplicate resources
+          for d in app/src/main/res/mipmap-*; do
+            for xml in "$d"/*.xml; do
+              [ -f "$xml" ] || continue
+              png="${xml%.xml}.png"
+              if [ -f "$png" ]; then
+                echo "删除重复图标: $png"
+                rm -f "$png"
+              fi
+            done
+          done
+          # 兜底：任何 ic_launcher / ic_launcher_round 的 png 只要同目录有 xml 就删
+          find app/src/main/res -name "ic_launcher*.png" | while read p; do
+            if [ -f "${p%.png}.xml" ]; then echo "再删: $p"; rm -f "$p"; fi
+          done
+          echo "===== 删除后 mipmap 目录 ====="
+          ls -R app/src/main/res | grep mipmap || true
 
       - name: Build Debug APK
         working-directory: android
