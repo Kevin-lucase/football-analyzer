@@ -20,24 +20,37 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Setup Android SDK manually
+        run: |
+          export ANDROID_HOME=$GITHUB_WORKSPACE/android-sdk
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          cd $ANDROID_HOME
+          curl -sL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
+          unzip -q cmdline-tools.zip
+          mv cmdline-tools $ANDROID_HOME/cmdline-tools/temp
+          yes | $ANDROID_HOME/cmdline-tools/temp/bin/sdkmanager --sdk_root=$ANDROID_HOME "cmdline-tools;latest"
+          rm -rf $ANDROID_HOME/cmdline-tools/temp
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_PATH
 
       - name: Grant gradlew permission
+        working-directory: android
         run: chmod +x gradlew
 
       - name: Build Debug APK
+        working-directory: android
         run: ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: android/app/build/outputs/apk/debug/*.apk
 
       - name: Publish to Release
         uses: softprops/action-gh-release@v2
         if: always()
         with:
           tag_name: latest
-          files: app/build/outputs/apk/debug/*.apk
+          files: android/app/build/outputs/apk/debug/*.apk
