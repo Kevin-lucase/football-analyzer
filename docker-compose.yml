@@ -1,0 +1,26 @@
+services:
+  api:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      - DB_PATH=/data/football.db
+      - DATA_DIR=/data/data
+      - FOOTBALL_DATA_TOKEN=${FOOTBALL_DATA_TOKEN:-}
+    volumes: ["./data:/data"]
+    restart: unless-stopped
+  scheduler:
+    build: .
+    command: python -m football.scheduler
+    volumes: ["./data:/data"]
+    environment:
+      - DB_PATH=/data/football.db
+      - DATA_DIR=/data/data
+      - FOOTBALL_DATA_TOKEN=${FOOTBALL_DATA_TOKEN:-}
+    restart: unless-stopped
+  # 可选：PostgreSQL + Redis（生产部署启用）
+  # postgres:
+  #   image: postgres:16-alpine
+  #   environment: {POSTGRES_PASSWORD: football, POSTGRES_DB: football}
+  #   ports: ["5432:5432"]
+  # redis:
+  #   image: redis:7-alpine
