@@ -26,10 +26,9 @@ jobs:
           mkdir -p $ANDROID_HOME/cmdline-tools
           cd $ANDROID_HOME
           curl -sL https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
-          unzip -q cmdline-tools.zip
-          mv cmdline-tools $ANDROID_HOME/cmdline-tools/temp
-          yes | $ANDROID_HOME/cmdline-tools/temp/bin/sdkmanager --sdk_root=$ANDROID_HOME "cmdline-tools;latest"
-          rm -rf $ANDROID_HOME/cmdline-tools/temp
+          unzip -q cmdline-tools.zip -d $ANDROID_HOME/tmp-extract
+          mv $ANDROID_HOME/tmp-extract/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
+          rm -rf $ANDROID_HOME/tmp-extract cmdline-tools.zip
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-34" "build-tools;34.0.0"
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/build-tools/34.0.0" >> $GITHUB_PATH
